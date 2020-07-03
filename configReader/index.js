@@ -1,8 +1,8 @@
 'use strict';
 
 const yaml = require('js-yaml');
-const fs   = require('fs');
-const p= require('path');
+const fs = require('fs');
+const p = require('path');
 
 let config  = null;
 

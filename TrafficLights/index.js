@@ -3,6 +3,7 @@
 const MAX_COLOR_INDEX = 3;
 const signalerList = require('../signalerList');
 const sender = require('../signalerAccessLayer');
+const frontSender = require('../websocket');
 const config = require('../configReader').getConfig();
 const STATUS_OK = require('../utils/httpStauses').STATUS_OK
 
@@ -49,7 +50,19 @@ function removeSignaler(index, id) {
     console.log(`Signaler with id: ${id}, not responding. Removed from signaler list!`);
 }
 
+function prepareDataForFront(signaler) {
+    return {
+        id: signaler.id,
+        url: signaler.url,
+        state: signaler.currentColor
+    };
+}
+
 class TrafficLights {
+
+    constructor(){
+        this.stateChanged = false;
+    }
 
     update(signaler) {
         const additionalTime = Math.floor(Math.random() * (config.maxAdditionalTime + 1));
@@ -69,19 +82,30 @@ class TrafficLights {
 
     start() {
         const signalers = signalerList.get();
+        let dataForFront = [];
         for(let index = 0; index < signalers.size(); index ++) {
             const signaler = signalers[index];
-            const currentColor = getColor.bind(signaler)(signaler.times);
+            signaler.currentColor = getColor.bind(signaler)(signaler.times);
 
-            if(signaler.previousColor !== currentColor) {
-                signaler.previousColor = currentColor;
-                sender.sendData(currentColor, signaler.url)
+            if(signaler.previousColor !== signaler.currentColor) {
+                signaler.previousColor = signaler.currentColor;
+                sender.sendData(signaler.currentColor, signaler.url)
                     .then(result => handleResponse(result, index, signaler.id))
                     .catch(err => handleError(err, index, signaler.id));
 
-                console.log(`Current state: ${currentColor} for signaler with id: ${signaler.id}`);
+                this.stateChanged = true;
+
+                dataForFront.push(prepareDataForFront(signaler));
+
+                console.log(`Current state: ${signaler.currentColor} for signaler with id: ${signaler.id}`);
             }
         }
+
+        if(this.stateChanged) {
+            frontSender.sendData(dataForFront);
+            this.stateChanged = false;
+        }
+
     }
 }
 
