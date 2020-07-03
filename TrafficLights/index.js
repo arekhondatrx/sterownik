@@ -29,6 +29,25 @@ function getTime() {
     return new Date().getTime() / 1000;
 }
 
+function handleResponse(res, index, id) {
+
+    if(res.status != 200) {
+        removeSignaler(index, id);
+        return;
+    }
+    console.log(`Response from signaler[${id}]: ${JSON.stringify(res)}`)
+}
+
+function handleError(err, index, id) {
+    console.log(`${err}`);
+    removeSignaler(index, id);
+}
+
+function removeSignaler(index, id) {
+    signalerList.get().remove(index);
+    console.log(`Signaler with id: ${id}, not responding. Removed from signaler list!`);
+}
+
 class TrafficLights {
 
     update(signaler) {
@@ -48,13 +67,17 @@ class TrafficLights {
     }
 
     start() {
-        for(const signaler of signalerList.get()) {
+        const signalers = signalerList.get();
+        for(let index = 0; index < signalers.size(); index ++) {
+            const signaler = signalers[index];
             const currentColor = getColor.bind(signaler)(signaler.times);
+
             if(signaler.previousColor !== currentColor) {
                 signaler.previousColor = currentColor;
                 sender.sendData(currentColor, signaler.url)
-                    .then(result => console.log(`Response: ${JSON.stringify(result)}`))
-                    .catch(err => console.log(`${err}`));
+                    .then(result => handleResponse(result, signalers, index, signaler.id))
+                    .catch(err => handleError(err, index, signaler.id));
+
                 console.log(`Current state: ${currentColor} for signaler with id: ${signaler.id}`);
             }
         }
