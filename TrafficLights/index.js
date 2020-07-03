@@ -4,6 +4,7 @@ const MAX_COLOR_INDEX = 3;
 const signalerList = require('../signalerList');
 const sender = require('../signalerAccessLayer');
 const config = require('../configReader').getConfig();
+const STATUS_OK = require('../utils/httpStauses').STATUS_OK
 
 function getState() {
     if(this.color > MAX_COLOR_INDEX) {
@@ -31,7 +32,7 @@ function getTime() {
 
 function handleResponse(res, index, id) {
 
-    if(res.status != 200) {
+    if(res.status != STATUS_OK) {
         removeSignaler(index, id);
         return;
     }

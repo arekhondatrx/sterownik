@@ -1,5 +1,6 @@
 'use strict';
 
+const BAD_REQUEST = require('../utils/httpStauses').BAD_REQUEST
 
 function bodyIsValid(body) {
     if(!body || !body.id || !body.url) {
@@ -14,7 +15,7 @@ function handler(signalerList) {
     return (req, res) => {
 
         if (!bodyIsValid(req.body)) {
-            res.status(400);
+            res.status(BAD_REQUEST);
         }
 
         signalerList.update(req.body);
