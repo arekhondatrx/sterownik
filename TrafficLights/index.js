@@ -2,6 +2,8 @@
 
 const MAX_COLOR_INDEX = 3;
 const MAX_ADDITIONAL_TIME = 15; // config?
+const signalerList = require('../signalerList');
+const sender = require('../signalerAccessLayer');
 
 function getState() {
     if(this.color > MAX_COLOR_INDEX) {
@@ -28,9 +30,6 @@ function getTime() {
 }
 
 class TrafficLights {
-    constructor(options) {
-        this.signalerList = [];
-    }
 
     update(signaler) {
         const additionalTime = Math.floor(Math.random() * (MAX_ADDITIONAL_TIME + 1));
@@ -45,14 +44,17 @@ class TrafficLights {
         signaler.startTime = getTime();
         signaler.currentState = getState.bind(signaler)();
 
-        this.signalerList.push(signaler);
+        signalerList.update(signaler);
     }
 
     start() {
-        for(const signaler of this.signalerList) {
+        for(const signaler of signalerList.get()) {
             const currentColor = getColor.bind(signaler)(signaler.times);
             if(signaler.previousColor !== currentColor) {
                 signaler.previousColor = currentColor;
+                sender.sendData(currentColor, signaler.url)
+                    .then(result => console.log(`Response: ${JSON.stringify(result)}`))
+                    .catch(err => console.log(`${err}`));
                 console.log(`Current state: ${currentColor} for signaler with id: ${signaler.id}`);
             }
         }

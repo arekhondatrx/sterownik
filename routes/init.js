@@ -3,8 +3,14 @@
 const express = require('express');
 const router = express.Router();
 
-router.post('/init', function(req, res) {
-  res.send({title: 'Express' });
-});
+const init = require('../handlers/init');
 
-module.exports = router;
+function getRouter(traffic) {
+  router.post('/init', init.handler(traffic));
+  return router;
+}
+
+
+module.exports = {
+  getRouter
+};
