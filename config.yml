@@ -1,0 +1,5 @@
+server:
+  port: 2000
+  interval: 100
+
+maxAdditionalTime: 15

@@ -1,9 +1,9 @@
 'use strict';
 
 const MAX_COLOR_INDEX = 3;
-const MAX_ADDITIONAL_TIME = 15; // config?
 const signalerList = require('../signalerList');
 const sender = require('../signalerAccessLayer');
+const config = require('../configReader').getConfig();
 
 function getState() {
     if(this.color > MAX_COLOR_INDEX) {
@@ -51,7 +51,7 @@ function removeSignaler(index, id) {
 class TrafficLights {
 
     update(signaler) {
-        const additionalTime = Math.floor(Math.random() * (MAX_ADDITIONAL_TIME + 1));
+        const additionalTime = Math.floor(Math.random() * (config.maxAdditionalTime + 1));
         signaler.times = [
             { color: 'ORANGE', time: 1 },
             { color: 'GREEN', time: 4 + additionalTime},
@@ -75,7 +75,7 @@ class TrafficLights {
             if(signaler.previousColor !== currentColor) {
                 signaler.previousColor = currentColor;
                 sender.sendData(currentColor, signaler.url)
-                    .then(result => handleResponse(result, signalers, index, signaler.id))
+                    .then(result => handleResponse(result, index, signaler.id))
                     .catch(err => handleError(err, index, signaler.id));
 
                 console.log(`Current state: ${currentColor} for signaler with id: ${signaler.id}`);

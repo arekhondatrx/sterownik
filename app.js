@@ -2,26 +2,22 @@
 
 const express = require('express');
 const bodyParser = require('body-parser')
-const path = require('path');
 
 const init = require('./routes/init');
-
+const config = require('./configReader').getConfig();
 const TrafficLights = require('./TrafficLights');
-const traffic = new TrafficLights(null);
 
+const traffic = new TrafficLights();
 const app = express();
-
-const port = 2000; // do configu
 
 app.use(express.json());
 app.use(bodyParser.urlencoded({ extended: false }));
 app.use(bodyParser.json());
-app.use(express.static(path.join(__dirname, 'public')));
 
 app.use('/', init.getRouter(traffic));
 
-app.listen(port, () => {
-  console.log(`Start server on http://localhost:${port}`);
+app.listen(config.server.port, () => {
+  console.log(`Start server on http://localhost:${config.server.port}`);
 });
 
-setInterval(() => traffic.start(), 100);
+setInterval(() => traffic.start(), config.server.interval);
