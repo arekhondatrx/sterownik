@@ -6,7 +6,7 @@ const sender = require('../signalerAccessLayer');
 const frontSender = require('../websocket');
 const config = require('../configReader').getConfig();
 const STATUS_OK = require('../utils/httpStauses').STATUS_OK
-const { GREEN, ORANGE, RED } = require('./lights');
+const { GREEN, ORANGE, RED, colors } = require('./lights');
 const SignalerDb = require('../db');
 
 function getState() {
@@ -35,7 +35,7 @@ function getTime() {
 
 function handleResponse(res, signaler) {
 
-    if(res.status != STATUS_OK) {
+    if(res.status !== STATUS_OK) {
         signalerList.update(prepareDataForFront(signaler, true));
     }
     else {
@@ -64,6 +64,8 @@ class TrafficLights {
 
     constructor() {
         this.db = new SignalerDb();
+        this.greenStates = 0;
+        this.greenPercentage = 0;
     }
 
     update(signaler) {
@@ -78,10 +80,17 @@ class TrafficLights {
     }
 
     start() {
+        this.greenStates = 0;
         const signalers = signalerList.get();
-        for(let index = 0; index < signalers.size(); index ++) {
+        const signalersSize = signalers.size();
+
+        for(let index = 0; index < signalersSize; index ++) {
             const signaler = signalers[index];
             signaler.currentColor = getColor.bind(signaler)(signaler.times);
+
+            if(signaler.currentColor === colors.GREEN) {
+                this.greenStates++;
+            }
 
             if(signaler.previousColor !== signaler.currentColor) {
                 signaler.previousColor = signaler.currentColor;
@@ -95,6 +104,9 @@ class TrafficLights {
             }
 
         }
+
+        this.greenPercentage = signalersSize === 0 ? 0 : (this.greenStates / signalersSize) * 100;
+        console.log(`${this.greenPercentage}% of signalers are in ${colors.GREEN} state`);
     }
 
     getClients() {
