@@ -5,7 +5,7 @@ const WebSocket = require('websocket').server;
 let wsServer = null;
 let connection = null;
 
-async function init(http) {
+async function init(http, clientList) {
     wsServer = new WebSocket({ httpServer: http });
 
     wsServer.on('open', (event) => {
@@ -16,6 +16,7 @@ async function init(http) {
         console.log('Connection from origin ' + request.origin + '.');
 
         connection = request.accept(null, request.origin);
+        sendData(clientList);
         console.log('Connection accepted.');
     });
 

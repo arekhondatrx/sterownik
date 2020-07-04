@@ -11,7 +11,7 @@ function update(input) {
         const client = clients.get(i);
         if(input.id === client.id) {
             clientAlreadyExist = true;
-            console.log('Client already exist!')
+            client.state = input.state;
             break;
         }
     }

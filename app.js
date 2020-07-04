@@ -20,6 +20,6 @@ app.use('/', init.getRouter(traffic));
 
 const server = http.createServer(app);
 server.listen(config.server.port, () => console.log(`Start server on http://localhost:${config.server.port}`));
-frontend.init(server);
+frontend.init(server, traffic.getClients());
 
 setInterval(() => traffic.start(), config.server.interval);

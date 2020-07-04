@@ -6,6 +6,7 @@ const sender = require('../signalerAccessLayer');
 const frontSender = require('../websocket');
 const config = require('../configReader').getConfig();
 const STATUS_OK = require('../utils/httpStauses').STATUS_OK
+const { GREEN, ORANGE, RED } = require('./lights');
 
 function getState() {
     if(this.color > MAX_COLOR_INDEX) {
@@ -31,47 +32,38 @@ function getTime() {
     return new Date().getTime() / 1000;
 }
 
-function handleResponse(res, index, id) {
+function handleResponse(res, signaler) {
 
     if(res.status != STATUS_OK) {
-        removeSignaler(index, id);
-        return;
+        signalerList.update(prepareDataForFront(signaler, true));
     }
-    console.log(`Response from signaler[${id}]: ${JSON.stringify(res)}`)
+    else {
+        signalerList.update(prepareDataForFront(signaler, false));
+    }
+
+    frontSender.sendData(signalerList.get());
+    console.log(`Response from signaler[${signaler.id}]: ${JSON.stringify(res)}`)
 }
 
-function handleError(err, index, id) {
+function handleError(err, signaler) {
     console.log(`${err}`);
-    removeSignaler(index, id);
+    signalerList.update(prepareDataForFront(signaler, true));
+    frontSender.sendData(signalerList.get());
 }
 
-function removeSignaler(index, id) {
-    signalerList.get().remove(index);
-    console.log(`Signaler with id: ${id}, not responding. Removed from signaler list!`);
-}
-
-function prepareDataForFront(signaler) {
+function prepareDataForFront(signaler, blink) {
     return {
         id: signaler.id,
         url: signaler.url,
-        state: signaler.currentColor
+        state: blink ? 'ORANGE-BLINK' : signaler.currentColor
     };
 }
 
 class TrafficLights {
 
-    constructor(){
-        this.stateChanged = false;
-    }
-
     update(signaler) {
         const additionalTime = Math.floor(Math.random() * (config.maxAdditionalTime + 1));
-        signaler.times = [
-            { color: 'ORANGE', time: 1 },
-            { color: 'GREEN', time: 4 + additionalTime},
-            { color: 'ORANGE', time: 1 },
-            { color: 'RED', time: 3 + additionalTime}];
-
+        signaler.times = [ORANGE(0), GREEN(additionalTime), ORANGE(0), RED(additionalTime)];
         signaler.color = Math.floor(Math.random() * (MAX_COLOR_INDEX + 1));
         signaler.previousColor = "";
         signaler.startTime = getTime();
@@ -82,7 +74,6 @@ class TrafficLights {
 
     start() {
         const signalers = signalerList.get();
-        let dataForFront = [];
         for(let index = 0; index < signalers.size(); index ++) {
             const signaler = signalers[index];
             signaler.currentColor = getColor.bind(signaler)(signaler.times);
@@ -90,22 +81,17 @@ class TrafficLights {
             if(signaler.previousColor !== signaler.currentColor) {
                 signaler.previousColor = signaler.currentColor;
                 sender.sendData(signaler.currentColor, signaler.url)
-                    .then(result => handleResponse(result, index, signaler.id))
-                    .catch(err => handleError(err, index, signaler.id));
-
-                this.stateChanged = true;
-
-                dataForFront.push(prepareDataForFront(signaler));
+                    .then(result => handleResponse(result, signaler))
+                    .catch(err => handleError(err, signaler));
 
                 console.log(`Current state: ${signaler.currentColor} for signaler with id: ${signaler.id}`);
             }
-        }
 
-        if(this.stateChanged) {
-            frontSender.sendData(dataForFront);
-            this.stateChanged = false;
         }
+    }
 
+    getClients() {
+        return signalerList.get();
     }
 }
 

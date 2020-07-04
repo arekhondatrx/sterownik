@@ -3,3 +3,8 @@ server:
   interval: 100
 
 maxAdditionalTime: 15
+
+lightsTime:
+  green: 4
+  orange: 1
+  red: 3
