@@ -7,6 +7,7 @@ const frontSender = require('../websocket');
 const config = require('../configReader').getConfig();
 const STATUS_OK = require('../utils/httpStauses').STATUS_OK
 const { GREEN, ORANGE, RED } = require('./lights');
+const SignalerDb = require('../db');
 
 function getState() {
     if(this.color > MAX_COLOR_INDEX) {
@@ -61,6 +62,10 @@ function prepareDataForFront(signaler, blink) {
 
 class TrafficLights {
 
+    constructor() {
+        this.db = new SignalerDb();
+    }
+
     update(signaler) {
         const additionalTime = Math.floor(Math.random() * (config.maxAdditionalTime + 1));
         signaler.times = [ORANGE(0), GREEN(additionalTime), ORANGE(0), RED(additionalTime)];
@@ -83,6 +88,8 @@ class TrafficLights {
                 sender.sendData(signaler.currentColor, signaler.url)
                     .then(result => handleResponse(result, signaler))
                     .catch(err => handleError(err, signaler));
+
+                this.db.insert(signaler.id, signaler.currentColor);
 
                 console.log(`Current state: ${signaler.currentColor} for signaler with id: ${signaler.id}`);
             }
