@@ -25,7 +25,7 @@ async function init(http, traffic) {
                 traffic.update(body);
             }
             else {
-                connection.send(JSON.stringify(traffic.getClients()));
+                connection.send({data: JSON.stringify(traffic.getClients())});
             }
 
             console.log(`Added client with id: ${body.id}`);

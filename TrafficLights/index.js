@@ -16,14 +16,20 @@ function getState() {
     return this.times[this.color - 1];
 }
 
-function getColor() {
+function getColor(percentageOfGreen) {
     const currentTime = getTime();
+    let zeroedTime = 1;
 
     if(this.blink) {
         return colors.ORANGE;
     }
 
-    if(currentTime - this.startTime >= this.currentState.time) {
+    if(!this.blink && percentageOfGreen <= config.minAmountOfGreen) {
+        console.log(`Percentage of green lights is under 20%, force green`);
+        zeroedTime = 0;
+    }
+
+    if(currentTime - this.startTime >= this.currentState.time * zeroedTime) {
         this.currentState = getState.bind(this)();
         this.startTime = getTime();
     }
@@ -52,6 +58,7 @@ class TrafficLights {
         this.db = new SignalerDb();
         this.greenStates = 0;
         this.greenPercentage = 0;
+        this.oldPercentage = 0;
     }
 
     update(signaler) {
@@ -61,7 +68,7 @@ class TrafficLights {
         signaler.previousColor = "";
         signaler.startTime = getTime();
         signaler.currentState = getState.bind(signaler)();
-        signaler.currentColor = getColor.bind(signaler)();
+        signaler.currentColor = getColor.bind(signaler)(this.greenPercentage);
         signaler.blink = false;
 
         signalerList.update(signaler);
@@ -74,7 +81,7 @@ class TrafficLights {
 
         for(let index = 0; index < signalersSize; index ++) {
             const signaler = signalers[index];
-            signaler.currentColor = getColor.bind(signaler)();
+            signaler.currentColor = getColor.bind(signaler)(this.oldPercentage);
 
             if(signaler.currentColor === colors.GREEN) {
                 this.greenStates++;
@@ -85,17 +92,19 @@ class TrafficLights {
                 const result = wsSender.sendData(signaler.currentColor, signaler.id);
                 signaler.blink = !result;
                 signalerList.update(prepareDataForFront(signaler, !result));
-                wsSender.sendData(signalerList.get(), 'front');;
+                wsSender.sendData({ percentage: this.greenPercentage, data: signalerList.get() }, 'front');;
 
                 this.db.insert(signaler.id, signaler.currentColor);
 
                 console.log(`Current state: ${signaler.currentColor} for signaler with id: ${signaler.id}`);
             }
-
         }
 
-        this.greenPercentage = signalersSize === 0 ? 0 : (this.greenStates / signalersSize) * 100;
-        // console.log(`${this.greenPercentage}% of signalers are in ${colors.GREEN} state`);
+        this.greenPercentage = signalersSize === 0 ? 0 : Math.floor((this.greenStates / signalersSize) * 100);
+        this.oldPercentage = this.greenPercentage;
+        wsSender.sendData({ percentage: this.greenPercentage, data: signalerList.get() }, 'front');
+
+
     }
 
     getClients() {
