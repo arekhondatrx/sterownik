@@ -2,10 +2,8 @@
 
 const MAX_COLOR_INDEX = 3;
 const signalerList = require('../signalerList');
-const sender = require('../signalerAccessLayer');
-const frontSender = require('../websocket');
+const wsSender = require('../websocket');
 const config = require('../configReader').getConfig();
-const STATUS_OK = require('../utils/httpStauses').STATUS_OK
 const { GREEN, ORANGE, RED, colors } = require('./lights');
 const SignalerDb = require('../db');
 
@@ -21,6 +19,10 @@ function getState() {
 function getColor() {
     const currentTime = getTime();
 
+    if(this.blink) {
+        return colors.ORANGE;
+    }
+
     if(currentTime - this.startTime >= this.currentState.time) {
         this.currentState = getState.bind(this)();
         this.startTime = getTime();
@@ -33,30 +35,14 @@ function getTime() {
     return new Date().getTime() / 1000;
 }
 
-function handleResponse(res, signaler) {
-
-    if(res.status !== STATUS_OK) {
-        signalerList.update(prepareDataForFront(signaler, true));
-    }
-    else {
-        signalerList.update(prepareDataForFront(signaler, false));
-    }
-
-    frontSender.sendData(signalerList.get());
-    console.log(`Response from signaler[${signaler.id}]: ${JSON.stringify(res)}`)
-}
-
-function handleError(err, signaler) {
-    console.log(`${err}`);
-    signalerList.update(prepareDataForFront(signaler, true));
-    frontSender.sendData(signalerList.get());
-}
-
 function prepareDataForFront(signaler, blink) {
     return {
         id: signaler.id,
         url: signaler.url,
-        state: blink ? 'ORANGE-BLINK' : signaler.currentColor
+        state: {
+            blink,
+            color: signaler.currentColor
+        }
     };
 }
 
@@ -75,6 +61,8 @@ class TrafficLights {
         signaler.previousColor = "";
         signaler.startTime = getTime();
         signaler.currentState = getState.bind(signaler)();
+        signaler.currentColor = getColor.bind(signaler)();
+        signaler.blink = false;
 
         signalerList.update(signaler);
     }
@@ -86,7 +74,7 @@ class TrafficLights {
 
         for(let index = 0; index < signalersSize; index ++) {
             const signaler = signalers[index];
-            signaler.currentColor = getColor.bind(signaler)(signaler.times);
+            signaler.currentColor = getColor.bind(signaler)();
 
             if(signaler.currentColor === colors.GREEN) {
                 this.greenStates++;
@@ -94,9 +82,10 @@ class TrafficLights {
 
             if(signaler.previousColor !== signaler.currentColor) {
                 signaler.previousColor = signaler.currentColor;
-                sender.sendData(signaler.currentColor, signaler.url)
-                    .then(result => handleResponse(result, signaler))
-                    .catch(err => handleError(err, signaler));
+                const result = wsSender.sendData(signaler.currentColor, signaler.id);
+                signaler.blink = !result;
+                signalerList.update(prepareDataForFront(signaler, !result));
+                wsSender.sendData(signalerList.get(), 'front');;
 
                 this.db.insert(signaler.id, signaler.currentColor);
 
@@ -106,7 +95,7 @@ class TrafficLights {
         }
 
         this.greenPercentage = signalersSize === 0 ? 0 : (this.greenStates / signalersSize) * 100;
-        console.log(`${this.greenPercentage}% of signalers are in ${colors.GREEN} state`);
+        // console.log(`${this.greenPercentage}% of signalers are in ${colors.GREEN} state`);
     }
 
     getClients() {

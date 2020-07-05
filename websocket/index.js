@@ -3,9 +3,9 @@
 const WebSocket = require('websocket').server;
 
 let wsServer = null;
-let connection = null;
+let clients = [];
 
-async function init(http, clientList) {
+async function init(http, traffic) {
     wsServer = new WebSocket({ httpServer: http });
 
     wsServer.on('open', (event) => {
@@ -15,24 +15,45 @@ async function init(http, clientList) {
     wsServer.on('request', (request) => {
         console.log('Connection from origin ' + request.origin + '.');
 
-        connection = request.accept(null, request.origin);
-        sendData(clientList);
+        const connection = request.accept(null, request.origin);
         console.log('Connection accepted.');
-    });
 
-    wsServer.on('close', ()=> {
-        console.log('Connection closed.');
+        connection.on('message', (msg) => {
+            const body = JSON.parse(msg.utf8Data);
+
+            if(Number.isInteger(parseInt(body.id))) {
+                traffic.update(body);
+            }
+            else {
+                connection.send(JSON.stringify(traffic.getClients()));
+            }
+
+            console.log(`Added client with id: ${body.id}`);
+
+            clients.push({id: body.id, connection})
+        });
+
+        connection.on('close', () => {
+           clients = clients.filter(c => c.connection !== connection);
+           console.log('Connection closed.');
+        });
+
     });
 }
 
-function sendData(data) {
+function sendData(data, id) {
+
+    const client = clients.filter(c => c.id === id)[0];
+    const connection = client ? client.connection : null;
+
     if(connection){
-        console.log('Sending data to frontend client.');
-        connection.send(JSON.stringify(data));
+        console.log('Sending data to client.');
+        client.connection.send(JSON.stringify(data));
+        return true;
     }
-    else {
-        console.log('Not connected to frontend client.');
-    }
+
+    console.log(`Not connected to client.`);
+    return false;
 }
 
 module.exports = {

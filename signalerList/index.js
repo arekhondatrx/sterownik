@@ -12,6 +12,7 @@ function update(input) {
         if(input.id === client.id) {
             clientAlreadyExist = true;
             client.state = input.state;
+            // client.blink = input.blink;
             break;
         }
     }
