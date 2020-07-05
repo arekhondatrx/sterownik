@@ -16,6 +16,7 @@ function getConfig() {
         return config;
     } catch (e) {
         console.log(`Cannot load config: ${e}!`);
+        return null;
     }
 }
 

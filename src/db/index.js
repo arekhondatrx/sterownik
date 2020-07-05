@@ -5,8 +5,8 @@ const sqlite3 = require('sqlite3').verbose();
 let db  = null;
 
 function initDb(db) {
-        db.run('CREATE TABLE signalers (id INT, state TEXT)');
-        console.log('DB is ready!');
+    db.run('CREATE TABLE signalers (id INT, state TEXT)');
+    console.log('DB is ready!');
 }
 
 function getDb() {

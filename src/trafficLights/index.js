@@ -5,7 +5,6 @@ const signalerList = require('../signalerList');
 const wsSender = require('../websocket');
 const config = require('../configReader').getConfig();
 const { GREEN, ORANGE, RED, colors } = require('./lights');
-const SignalerDb = require('../db');
 
 function getState() {
     if(this.color > MAX_COLOR_INDEX) {
@@ -54,8 +53,8 @@ function prepareDataForFront(signaler, blink) {
 
 class TrafficLights {
 
-    constructor() {
-        this.db = new SignalerDb();
+    constructor(db) {
+        this.db = db
         this.greenStates = 0;
         this.greenPercentage = 0;
         this.oldPercentage = 0;
@@ -103,7 +102,6 @@ class TrafficLights {
         this.greenPercentage = signalersSize === 0 ? 0 : Math.floor((this.greenStates / signalersSize) * 100);
         this.oldPercentage = this.greenPercentage;
         wsSender.sendData({ percentage: this.greenPercentage, data: signalerList.get() }, 'front');
-
 
     }
 
