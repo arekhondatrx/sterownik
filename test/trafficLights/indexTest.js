@@ -2,7 +2,7 @@
 
 const assert = require('assert');
 const sinon = require('sinon');
-const proxyquire = require('proxyquire');
+const proxyquire = require('proxyquire').callThru();
 
 function getTarget(stubs) {
     return proxyquire('../../src/trafficLights', {
@@ -30,6 +30,7 @@ describe('traffic light test', () => {
 
         // WHEN
         const tl = new target(dbStub);
+        tl.getClients().clear();
         tl.update(signaler)
         tl.start();
 

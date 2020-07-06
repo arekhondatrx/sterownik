@@ -3,7 +3,8 @@
   "version": "0.0.0",
   "private": true,
   "scripts": {
-    "start": "node ./bin/www"
+    "start": "node ./src/app.js",
+    "test": "npx mocha test/**/*.js --reporter spec"
   },
   "dependencies": {
     "arraylist": "^0.1.0",

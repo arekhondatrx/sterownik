@@ -25,14 +25,14 @@ function getTarget(runStub) {
 
 describe('db test', () => {
 
-    it('should properly init db', () => {
+    it('should properly init db', async() => {
         // GIVEN
         const runStub = sinon.stub();
         const target = getTarget(runStub);
         const result = new target();
 
         // WHEN
-        result.insert();
+        await result.insert();
 
         // THEN
         assert.ok(runStub.calledOnce);

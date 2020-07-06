@@ -91,7 +91,7 @@ class TrafficLights {
                 const result = wsSender.sendData(signaler.currentColor, signaler.id);
                 signaler.blink = !result;
                 signalerList.update(prepareDataForFront(signaler, !result));
-                wsSender.sendData({ percentage: this.greenPercentage, data: signalerList.get() }, 'front');;
+                wsSender.sendData({ percentage: this.greenPercentage, data: signalerList.get() }, 'front');
 
                 this.db.insert(signaler.id, signaler.currentColor);
 
