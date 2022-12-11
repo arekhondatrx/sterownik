@@ -10,7 +10,7 @@
     "arraylist": "^0.1.0",
     "websocket": "^1.0.30",
     "js-yaml": "^3.13.1",
-    "express": "~4.16.1",
+    "express": "~4.18.2",
     "http-errors": "~1.6.3",
     "mocha": "^8.0.1",
     "proxyquire": "^2.1.3",
